@@ -93,3 +93,13 @@ export interface Website {
     resourceGroup: string;
     defaultHostName: string;
 }
+
+export interface WebsiteCredentials {
+    id: string;
+    name: string;
+    location: string;
+    type: string;
+    publishingUserName: string;
+    publishingPassword: string;
+    scmUri: string;
+}

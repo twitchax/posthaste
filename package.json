@@ -23,9 +23,11 @@
     "fast-stats": "0.0.3",
     "fs": "0.0.1-security",
     "fs-extra": "^0.30.0",
+    "kudu-api": "^1.4.1",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
     "ms-rest-azure": "^1.15.7",
+    "node-dir": "^0.1.16",
     "pkginfo": "^0.4.0",
     "progress": "^1.1.8",
     "randomstring": "^1.1.5",
@@ -46,6 +48,7 @@
     "@types/mime": "0.0.29",
     "@types/mkdirp": "^0.3.29",
     "@types/mocha": "^2.2.40",
+    "@types/node-dir": "0.0.30",
     "@types/progress": "^1.1.28",
     "@types/randomstring": "^1.1.5",
     "@types/serve-static": "^1.7.31",
@@ -55,7 +58,6 @@
     "typescript": "^2.2.2"
   },
   "scripts": {
-    "postinstall": "tsc",
     "test": "mocha dist/test/test.js -R spec --grep p0"
   },
   "bin": {
