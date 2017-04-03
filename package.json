@@ -1,5 +1,5 @@
 {
-  "name": "posthaste",
+  "name": "azure-posthaste",
   "version": "1.0.0",
   "description": "PostHaste for Azure.",
   "main": "./dist/shared/commands.js",
