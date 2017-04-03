@@ -180,12 +180,27 @@ async function deployToWebsite(name, deployPath) {
         password: kuduCredentials.publishingPassword
     });
     try {
+        var nodePackagePath = path.resolve(deployPath, 'package.json');
+        var gitignorePath = path.resolve(deployPath, '.gitignore');
+        var isNodeDeployment = false;
+        if (fs.existsSync(nodePackagePath)) {
+            isNodeDeployment = true;
+        }
+        // TODO: Ignore files in ".gitignore".
+        console.log(`Uploading ... `.cyan);
         var files = await promisify(dir.files)(deployPath);
-        Promise.all((files).map(async (file) => {
+        await Promise.all(_(files).filter(f => !f.includes('.git')).map(async (file) => {
             var relativePath = path.relative(deployPath, file);
-            console.log(`Uploading ${relativePath} ... `.cyan);
-            return promisify(client.vfs.uploadFile, client.vfs)(file, `site/wwwroot/${relativePath}`);
-        }));
+            console.log(`   ${relativePath}`.cyan);
+            await promisify(client.vfs.uploadFile, client.vfs)(file, `site/wwwroot/${relativePath}`);
+        }).value());
+        console.log('done!'.green);
+        if (isNodeDeployment) {
+            // TODO: If this is a node app, generate the Web.config.
+            console.log('Performing `npm install` ... '.cyan);
+            var installResult = await promisify(client.command.exec, client.command)('npm install', 'site/wwwroot');
+            console.log('done!'.green);
+        }
     }
     catch (err) {
         console.log(err);
@@ -195,26 +210,56 @@ exports.deployToWebsite = deployToWebsite;
 // Helpers.
 async function fixedKnownError(errCode) {
     var fixed = false;
-    async function loginForTenant() {
-        var tenantId = _(await getTenants()).first().tenantId;
-        await login(true, tenantId);
-    }
     switch (errCode) {
         case 'ExpiredAuthenticationToken':
             await login(true);
             fixed = true;
             break;
         case 'InvalidAuthenticationTokenTenant':
-            await loginForTenant();
-            // var authContext = new adal.AuthenticationContext(`https://login.microsoftonline.com/${tenantId}`, true, (credentials as any).tokenCache);
-            // authContext.acquireTokenWithDeviceCode(authConfig.resourceId, authConfig.clientId, userCodeResponse, function (err, tokenResponse) {
-            //     if (err) { return callback(err); }
-            //     return callback(null, new exports.UserTokenCredentials(authConfig, tokenResponse.userId));
-            // });
+            await createCredentials({ domain: _(await getTenants()).first().tenantId });
             fixed = true;
             break;
     }
     return fixed;
+}
+function createCredentials(parameters) {
+    var options = {};
+    var creds = credentials;
+    options.environment = creds.environment;
+    options.domain = 'common';
+    options.clientId = creds.clientId;
+    options.tokenCache = creds.tokenCache;
+    options.username = creds.username;
+    options.authorizationScheme = creds.authorizationScheme;
+    options.tokenAudience = creds.tokenAudience;
+    if (parameters) {
+        if (parameters.domain) {
+            options.domain = parameters.domain;
+        }
+        if (parameters.environment) {
+            options.environment = parameters.environment;
+        }
+        if (parameters.userId) {
+            options.username = parameters.userId;
+        }
+        if (parameters.tokenCache) {
+            options.tokenCache = parameters.tokenCache;
+        }
+        if (parameters.tokenAudience) {
+            options.tokenAudience = parameters.tokenAudience;
+        }
+    }
+    if (Azure.UserTokenCredentials.prototype.isPrototypeOf(this)) {
+        credentials = new Azure.UserTokenCredentials(options.clientId, options.domain, options.username, this.password, options);
+    }
+    else if (Azure.ApplicationTokenCredentials.prototype.isPrototypeOf(this)) {
+        credentials = new Azure.ApplicationTokenCredentials(options.clientId, options.domain, this.secret, options);
+    }
+    else {
+        credentials = new Azure.DeviceTokenCredentials(options);
+    }
+    fs.writeFileSync(exports.credentialPath, JSON.stringify(credentials));
+    return credentials;
 }
 // Resolve methods.
 async function resolveSubscriptionId() {

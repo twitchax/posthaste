@@ -107,7 +107,7 @@ export async function removeWebsites(name: string) {
         }
 
         console.log(`Removing sites ... `.cyan);
-        for(var s of sites) {
+        for(let s of sites) {
             await helpers.deleteWebsite(s.name);
         }
         console.log('Sites removed.'.green);
@@ -116,7 +116,7 @@ export async function removeWebsites(name: string) {
 
 // Deploy commands.
 
-export async function deploy(deployPath: string = '.') {
+export async function deploy(deployPath: string = '.', deployName: string = undefined) {
 
     var fullPath = path.resolve(deployPath);
 
@@ -125,7 +125,9 @@ export async function deploy(deployPath: string = '.') {
         return;
     }
 
-    var projName = _(fullPath.split(new RegExp('[/\\\\]'))).last();
+    // TODO: Detect name from node package.json if this is node.
+
+    var projName = deployName || _(fullPath.split(new RegExp('[/\\\\]'))).last();
     var random = randomstring.generate({
         length: 8,
         charset: 'alphabetic', 

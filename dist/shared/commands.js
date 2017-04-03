@@ -84,7 +84,7 @@ async function removeWebsites(name) {
             return;
         }
         console.log(`Removing sites ... `.cyan);
-        for (var s of sites) {
+        for (let s of sites) {
             await helpers.deleteWebsite(s.name);
         }
         console.log('Sites removed.'.green);
@@ -92,13 +92,14 @@ async function removeWebsites(name) {
 }
 exports.removeWebsites = removeWebsites;
 // Deploy commands.
-async function deploy(deployPath = '.') {
+async function deploy(deployPath = '.', deployName = undefined) {
     var fullPath = path.resolve(deployPath);
     if (!fs.existsSync(fullPath)) {
         console.log('Invalid path specified.'.red);
         return;
     }
-    var projName = _(fullPath.split(new RegExp('[/\\\\]'))).last();
+    // TODO: Detect name from node package.json if this is node.
+    var projName = deployName || _(fullPath.split(new RegExp('[/\\\\]'))).last();
     var random = randomstring.generate({
         length: 8,
         charset: 'alphabetic',

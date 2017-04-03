@@ -15,12 +15,12 @@ import * as helpers from '../shared/helpers';
 // Variables.
 
 var runDefault = true;
-var passthroughPath = '.';
+var deployPath = '.';
 
 // Setup.
 
 mkdirp.sync(helpers.cachePath);
-console.log(`Caching data to ${helpers.cachePath}.`.blue);
+console.log(`Caching data to ${helpers.cachePath}.`.magenta);
 // TODO: Add note about having to login twice, but more than that may require subscription reset.
 
 // Global defines.
@@ -50,6 +50,7 @@ program
         
         switch(cmd) {
             case 'list':
+            case 'ls':
                 await commands.listTenants();
                 break;
         }
@@ -70,6 +71,7 @@ program
                 await commands.setSubscription(arg);
                 break;
             case 'list':
+            case 'ls':
                 await commands.listSubscriptions();
                 break;
         }
@@ -90,6 +92,7 @@ program
                 await commands.setResourceGroup(arg);
                 break;
             case 'list':
+            case 'ls':
                 await commands.listResourceGroups();
                 break;
         }
@@ -100,7 +103,7 @@ program
 program
     .command('plan')
     .arguments('<cmd> [arg]')
-    .description('edit resource groups (list, set)')
+    .description('edit plans (list, set)')
     .action(async (cmd, arg) => {
         runDefault = false;
 
@@ -109,6 +112,7 @@ program
                 await commands.setPlan(arg);
                 break;
             case 'list':
+            case 'ls':
                 await commands.listPlans();
                 break;
         }
@@ -120,7 +124,7 @@ program
     .command('credential')
     .alias('cred')
     .arguments('<cmd> [arg]')
-    .description('edit credentials (clear)')
+    .description('edit credentials (clear).')
     .action(async (cmd, arg) => {
         runDefault = false;
 
@@ -135,7 +139,7 @@ program
 program
     .command('setting')
     .arguments('<cmd> [arg]')
-    .description('edit settings (clear)')
+    .description('edit settings (clear).')
     .action(async (cmd, arg) => {
         runDefault = false;
 
@@ -163,7 +167,7 @@ program
     .command('remove')
     .alias('rm')
     .arguments('[likeName]')
-    .description('delete all sites that begin with [likeName].')
+    .description('remove all sites that begin with [likeName] (leave blank for "all").')
     .action(async (likeName) => {
         runDefault = false;
 
@@ -173,10 +177,11 @@ program
 // Deploy commands.
 
 program
-    .arguments('[path]')
+    .arguments('[options] [path]')
+    .option('-n, --siteName <siteName>', 'specify name.')
     .description('deploy site from [path].')
     .action((path) => {
-        passthroughPath = path;
+        deployPath = path;
     });
 
 // Global directives.
@@ -186,4 +191,4 @@ program.parse(process.argv);
 // Main path.
 
 if(runDefault)
-    commands.deploy(passthroughPath);
+    commands.deploy(deployPath, program.siteName);
