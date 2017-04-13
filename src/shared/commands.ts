@@ -22,8 +22,10 @@ import {  } from '../shared/bll';
 export async function listTenants() {
     var tenants = await helpers.getTenants();
     
-    console.log('Tenants:')
-    _(tenants).forEach(t => console.log(`   ${t.tenantId}`.cyan));
+    console.log(`${helpers._tab}Tenants:`);
+    helpers.tab();
+    _(tenants).forEach(t => console.log(`${helpers._tab}${t.tenantId}`.cyan));
+    helpers.untab();
 }
 
 // Subscription commands.
@@ -34,48 +36,54 @@ export async function setSubscription(name: string) {
     var subscription = _(subscriptions).filter(s => s.displayName === name).first();
 
     if(!subscription) {
-        console.log(`Cannot find subscription: ${name}`.red);
+        console.log(`${helpers._tab}Cannot find subscription: ${name}`.red);
         return;
     }
 
     settings.set('subscriptionId', subscription.subscriptionId);
 
-    console.log(`Successfully set default subscription: ${subscription.displayName} (${subscription.subscriptionId}).`.green);
+    console.log(`${helpers._tab}Successfully set default subscription: ${subscription.displayName} (${subscription.subscriptionId}).`.green);
 }
 
 export async function listSubscriptions() {
     var subscriptions = await helpers.getSubscriptions();
     
-    console.log('Subscriptions:')
-    _(subscriptions).forEach(s => console.log(`   ${s.displayName}`.cyan));
+    console.log(`${helpers._tab}Subscriptions:`);
+    helpers.tab();
+    _(subscriptions).forEach(s => console.log(`${helpers._tab}${s.displayName}`.cyan));
+    helpers.untab();
 }
 
 // Resource group commands.
 
 export async function setResourceGroup(name: string) {
     settings.set('resourceGroupName', name);
-    console.log(`Successfully set default resource group: ${name}.`.green);
+    console.log(`${helpers._tab}Successfully set default resource group: ${name}.`.green);
 }
 
 export async function listResourceGroups() {
     var groups = await helpers.getResourceGroups();
     
-    console.log('Resource groups:')
-    _(groups).forEach(g => console.log(`   ${g.name}`.cyan));
+    console.log(`${helpers._tab}Resource groups:`);
+    helpers.tab();
+    _(groups).forEach(g => console.log(`${helpers._tab}${g.name}`.cyan));
+    helpers.untab();
 }
 
 // Plan commands.
 
 export async function setPlan(name: string) {
     settings.set('resourceGroupName', name);
-    console.log(`Successfully set default plan: ${name}.`.green);
+    console.log(`${helpers._tab}Successfully set default plan: ${name}.`.green);
 }
 
 export async function listPlans() {
     var plans = await helpers.getPlans();
     
-    console.log('Plans:')
-    _(plans).forEach(p => console.log(`   ${p.name}`.cyan));
+    console.log(`${helpers._tab}Plans:`);
+    helpers.tab();
+    _(plans).forEach(p => console.log(`${helpers._tab}${p.name}`.cyan));
+    helpers.untab();
 }
 
 // Website commands.
@@ -83,8 +91,10 @@ export async function listPlans() {
 export async function listWebsites() {
     var sites = await helpers.getWebsites();
     
-    console.log('Sites:')
-    _(sites).forEach(s => console.log(`   ${s.name}`.cyan));
+    console.log(`${helpers._tab}Sites:`);
+    helpers.tab();
+    _(sites).forEach(s => console.log(`${helpers._tab}${s.name}`.cyan));
+    helpers.untab();
 }
 
 export async function removeWebsites(name: string) {
@@ -94,23 +104,25 @@ export async function removeWebsites(name: string) {
         var sites = _(await helpers.getWebsites()).filter(s => s.name.startsWith(name)).value();
     }
     
-    console.log('Preparing to remove:');
-    _(sites).orderBy(s => s.name).forEach(s => console.log(`   ${s.name}`));
+    console.log(`${helpers._tab}Preparing to remove:`);
+    helpers.tab();
+    _(sites).orderBy(s => s.name).forEach(s => console.log(`${helpers._tab}${s.name}`));
+    helpers.untab();
 
     var i = readline.createInterface(process.stdin, process.stdout, null);
-    i.question('Are you sure you want to remove these websites (Y/[n])? '.yellow, async result => {
+    i.question(`${helpers._tab}Are you sure you want to remove these websites (Y/[n])? `.yellow, async result => {
         i.close(); (process.stdin as any).destroy();
 
         if(result !== 'Y') {
-            console.log('No action taken.'.green);
+            console.log(`${helpers._tab}No action taken.`.green);
             return;
         }
 
-        console.log(`Removing sites ... `.cyan);
+        console.log(`${helpers._tab}Removing sites ... `.cyan);
         for(let s of sites) {
             await helpers.deleteWebsite(s.name);
         }
-        console.log('Sites removed.'.green);
+        console.log(`${helpers._tab}Sites removed.`.green);
     });
 }
 
@@ -121,11 +133,11 @@ export async function deploy(deployPath: string = '.', deployName: string = unde
     var fullPath = path.resolve(deployPath);
 
     if(!fs.existsSync(fullPath)) {
-        console.log('Invalid path specified.'.red);
+        console.log(`${helpers._tab}Invalid path specified.`.red);
         return;
     }
 
-    // TODO: Detect name from node package.json if this is node.
+    // TODO: Infer name from pachage.json/csproj?
 
     var projName = deployName || _(fullPath.split(new RegExp('[/\\\\]'))).last();
     var random = randomstring.generate({
@@ -136,15 +148,17 @@ export async function deploy(deployPath: string = '.', deployName: string = unde
 
     var websiteName = `${projName}-${random}`;
 
-    console.log(`Creating site: http://${websiteName}.azurewebsites.net/ ... `.cyan);
+    console.log(`${helpers._tab}Creating site: http://${websiteName}.azurewebsites.net/ ... `.cyan);
+    helpers.tab();
     var site = await helpers.createWebsite(websiteName);
-    console.log('done!'.green);
+    helpers.untab();
 
-    console.log(`Deploying ... `.cyan);
+    console.log(`${helpers._tab}Deploying ... `.cyan);
+    helpers.tab();
     await helpers.deployToWebsite(websiteName, fullPath);
-    console.log('done!'.green);
+    helpers.untab();
 
-    console.log(`Navigate to http://${websiteName}.azurewebsites.net/ ! `.cyan);
+    console.log(`${helpers._tab}Navigate to http://${websiteName}.azurewebsites.net/ ! `.cyan);
 }
 
 // Other commands.

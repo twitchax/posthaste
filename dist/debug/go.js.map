@@ -1,1 +1,1 @@
-{"version":3,"file":"go.js","sourceRoot":"","sources":["../../src/debug/go.ts"],"names":[],"mappings":";;AAAA,+CAA+C;AAM/C,CAAC,KAAK;IACF,MAAM,QAAQ,CAAC,iBAAiB,EAAE,CAAC;IACnC,gCAAgC;AACpC,CAAC,CAAC,EAAE,CAAC"}
+{"version":3,"file":"go.js","sourceRoot":"","sources":["../../src/debug/go.ts"],"names":[],"mappings":";;AAAA,+CAA+C;AAM/C,CAAC,KAAK;IACF,wBAAwB;IACxB,+BAA+B;IAC/B,MAAM,QAAQ,CAAC,MAAM,CAAC,MAAM,CAAC,CAAC;AAClC,CAAC,CAAC,EAAE,CAAC"}

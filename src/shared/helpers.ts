@@ -3,10 +3,12 @@ import * as os from 'os';
 import * as path from 'path';
 import * as mkdirp from 'mkdirp';
 import * as fs from 'fs';
+import * as fsExtra from 'fs-extra';
 import * as _ from 'lodash';
 import * as colors from 'colors';
 import * as promisify from 'es6-promisify';
 import * as dir from 'node-dir';
+import { exec } from 'child-process-promise';
 
 import * as adal from 'adal-node';
 import * as MsRest from 'ms-rest';
@@ -27,27 +29,12 @@ export const defaultLocation = 'westus2';
 export const defaultPlanName = 'PostHastePlan';
 export const defaultSku = { name: 'F1', tier: 'Free' };
 
+export const stagingDirectoryName = '_phStaging';
+export const gitRemoteName = 'postHaste';
+
+export var _tab = '';
+
 var credentials: MsRest.ServiceClientCredentials;
-
-// Login helpers.
-
-export async function login(ignoreCache: boolean = false, tenantId?: string) {
-    if (!ignoreCache && credentials)
-        return credentials;
-
-    if (!ignoreCache && fs.existsSync(credentialPath)) {
-        var c = JSON.parse(fs.readFileSync(credentialPath).toString());
-        c.tokenCache = Object.assign(new adal.MemoryCache(), c.tokenCache);
-        credentials = new Azure.DeviceTokenCredentials(c);
-        
-        return credentials;
-    }
-    
-    credentials = await promisify(Azure.interactiveLogin)({ domain: tenantId });
-    fs.writeFileSync(credentialPath, JSON.stringify(credentials));
-
-    return credentials;
-}
 
 // Tenant helpers.
 
@@ -140,6 +127,8 @@ export async function createPlan(name: string) : Promise<Plan> {
     
     var client = new WebSiteManagementClient(credentials, subscriptionId);
 
+    client.serverFarms
+
     try {
         return await promisify(client.serverFarms.createOrUpdateServerFarm, client.serverFarms)(await resolveGroupName(), name, { location: defaultLocation, sku: defaultSku });
     } catch (err) {
@@ -213,68 +202,106 @@ export async function deleteWebsite(name: string) : Promise<Website> {
 }
 
 export async function deployToWebsite(name: string, deployPath: string) : Promise<void> {
-    var kuduCredentials = await getWebsiteCredentials(name);
-
-    var client = Kudu({
-        website: name, 
-        username: kuduCredentials.publishingUserName,
-        password: kuduCredentials.publishingPassword
-    });
-
     try {
+        
+        var kuduCredentials = await getWebsiteCredentials(name);
 
-        var nodePackagePath = path.resolve(deployPath, 'package.json');
-        var gitignorePath = path.resolve(deployPath, '.gitignore')
+        var gitEndpoint = kuduCredentials.scmUri;
+        var stagingDirectory = path.resolve(cachePath, `${stagingDirectoryName}_${name}`);
 
-        var isNodeDeployment = false;
+        console.log(`${_tab}Preparing staging directory ... `.cyan);
+        fsExtra.removeSync(stagingDirectory);
+        fsExtra.mkdirpSync(stagingDirectory);
+        fsExtra.copySync(deployPath, stagingDirectory, { filter: ((s) => { 
+            console.log(`Checking ${s} ... `);
+            return !s.includes('node_modules'); 
+        }) as fsExtra.CopyFilterFunction 
+        });
 
-        if(fs.existsSync(nodePackagePath)) {
-            isNodeDeployment = true;
+        if(!fs.existsSync(path.resolve(stagingDirectory, '.git'))) {
+            console.log(`${_tab}Initializing git repository ... `.cyan);
+            await exec('git init', { cwd: stagingDirectory });
+
+            console.log(`${_tab}Adding changes to git repository ... `.cyan);
+            await exec('git add * -f', { cwd: stagingDirectory });
+
+            console.log(`${_tab}Committing changes ...`.cyan);
+            await exec('git commit -m "PostHaste commit pre-deploy."', { cwd: stagingDirectory });
         }
 
-        // TODO: Ignore files in ".gitignore".
-
-        console.log(`Uploading ... `.cyan);
-        var files = await promisify(dir.files)(deployPath);
-        await Promise.all(
-            _(files).filter(f => !f.includes('.git')).map(async file => {
-                var relativePath = path.relative(deployPath, file);
-                console.log(`   ${relativePath}`.cyan);
-                await promisify(client.vfs.uploadFile, client.vfs)(file, `site/wwwroot/${relativePath}`);
-            }).value()
-        );
-        console.log('done!'.green);
-
-        if (isNodeDeployment) {
-            // TODO: If this is a node app, generate the Web.config.
-
-            console.log('Performing `npm install` ... '.cyan);
-            var installResult = await promisify(client.command.exec, client.command)('npm install', 'site/wwwroot');
-            console.log('done!'.green);
+        console.log(`${_tab}Setting remote ...`.cyan);
+        await exec(`git remote rm ${gitRemoteName}`, { cwd: stagingDirectory }).catch(() => {});
+        if(os.platform().toLowerCase().includes('linux') || os.platform().toLowerCase().includes('darwin')) {
+            await exec(`git remote add ${gitRemoteName} '${gitEndpoint}'`, { cwd: stagingDirectory });
+        } else {
+            await exec(`git remote add ${gitRemoteName} ${gitEndpoint}`, { cwd: stagingDirectory });
         }
+
+        console.log(`${_tab}Pushing via git ...`.cyan);
+        var pushChild = exec(`git push ${gitRemoteName} master`, { cwd: stagingDirectory });
+        pushChild.childProcess.stderr.on('data', (chunk: string) => {
+            process.stdout.write(chunk);
+        });
+        await pushChild;
         
     } catch (err) {
-        console.log(err);
+        console.log(`${_tab}${JSON.stringify(err, null, 2)}`.red);
+    } finally {
+        console.log(`${_tab}Cleaning up staging directory ...`.cyan);
+        fsExtra.removeSync(stagingDirectory);
     }
 }
 
-// Helpers.
+// Login helpers.
+
+export async function login(ignoreCache: boolean = false, tenantId?: string) {
+    if (!ignoreCache && credentials)
+        return credentials;
+
+    if (!ignoreCache && fs.existsSync(credentialPath)) {
+        var c = JSON.parse(fs.readFileSync(credentialPath).toString());
+        c.tokenCache = Object.assign(new adal.MemoryCache(), c.tokenCache);
+        credentials = new Azure.DeviceTokenCredentials(c);
+        
+        return credentials;
+    }
+    
+    credentials = await promisify(Azure.interactiveLogin)({ domain: tenantId });
+    fs.writeFileSync(credentialPath, JSON.stringify(credentials));
+    
+    return credentials;
+}
+
+// Other helpers.
 
 async function fixedKnownError(errCode) {
     var fixed = false;
 
     switch (errCode) {
         case 'ExpiredAuthenticationToken':
-            await login(true);
+            console.log(`${_tab}Refreshing access token ... `.yellow);
+            await refreshLogin();
             fixed = true;
             break;
         case 'InvalidAuthenticationTokenTenant':
+            console.log(`${_tab}Converting access token to first tenant ... `.yellow);
             await createCredentials({ domain: _(await getTenants()).first().tenantId });
             fixed = true;
             break;
     }
 
     return fixed;
+}
+
+export async function refreshLogin() {
+    for(var entry of (credentials as any).tokenCache._entries) {
+        var adalClient = new adal.AuthenticationContext(`https://login.microsoftonline.com/${entry.tenantId}`);
+
+        var tokenResponse = await promisify(adalClient.acquireTokenWithRefreshToken, adalClient)(entry.refreshToken, entry._clientId, null);
+        entry = Object.assign(entry, tokenResponse);
+    }
+
+    fs.writeFileSync(credentialPath, JSON.stringify(credentials));
 }
 
 function createCredentials(parameters) : MsRest.ServiceClientCredentials {
@@ -321,6 +348,14 @@ function createCredentials(parameters) : MsRest.ServiceClientCredentials {
     return credentials;
 }
 
+export function tab() {
+    _tab += '  ';
+}
+
+export function untab() {
+    _tab = _tab.substr(0, _tab.length - 2);
+}
+
 // Resolve methods.
 
 export async function resolveSubscriptionId() : Promise<string> {
@@ -329,11 +364,13 @@ export async function resolveSubscriptionId() : Promise<string> {
     var subscriptionId = settings.get('subscriptionId');
 
     if (!subscriptionId) {
-        console.log('No default subscription selected: ');
+        console.log(`${_tab}No default subscription selected: `);
+        tab();
         _(await getSubscriptions()).forEach(s => {
-            console.log(`   ${s.displayName}`);
+            console.log(`${_tab}${s.displayName}`);
         });
-        console.log('Set subscription with `subscription set`.'.red);
+        untab();
+        console.log(`${_tab}Set subscription with \`subscription set\`.`.red);
 
         throw new Error('No default subscription selected.');
     }
@@ -351,9 +388,10 @@ export async function resolveGroupName() : Promise<string> {
     }
     
     if (!_(groups).some(g => g.name === rgName)) {
-        console.log(`Creating resource group: ${rgName} ... `.cyan);
+        console.log(`${_tab}Creating resource group: ${rgName} ... `.cyan);
+        tab();
         await createResourceGroup(rgName);
-        console.log('done!'.green);
+        untab();
     }
 
     return rgName;
@@ -369,9 +407,10 @@ export async function resolvePlanName() : Promise<string> {
     }
     
     if (!_(plans).some(p => p.name === planName)) {
-        console.log(`Creating app service plan: ${planName} ... `.cyan);
+        console.log(`${_tab}Creating app service plan: ${planName} ... `.cyan);
+        tab();
         await createPlan(planName);
-        console.log('done!'.green);
+        untab();
     }
 
     return planName;
