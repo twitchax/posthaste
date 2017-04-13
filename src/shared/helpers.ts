@@ -213,9 +213,8 @@ export async function deployToWebsite(name: string, deployPath: string) : Promis
         fsExtra.removeSync(stagingDirectory);
         fsExtra.mkdirpSync(stagingDirectory);
         fsExtra.copySync(deployPath, stagingDirectory, { filter: ((s) => { 
-            console.log(`Checking ${s} ... `);
-            return !s.includes('node_modules'); 
-        }) as fsExtra.CopyFilterFunction 
+                return true; 
+            }) as fsExtra.CopyFilterFunction 
         });
 
         if(!fs.existsSync(path.resolve(stagingDirectory, '.git'))) {

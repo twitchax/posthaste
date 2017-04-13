@@ -170,8 +170,7 @@ async function deployToWebsite(name, deployPath) {
         fsExtra.removeSync(stagingDirectory);
         fsExtra.mkdirpSync(stagingDirectory);
         fsExtra.copySync(deployPath, stagingDirectory, { filter: ((s) => {
-                console.log(`Checking ${s} ... `);
-                return !s.includes('node_modules');
+                return true;
             })
         });
         if (!fs.existsSync(path.resolve(stagingDirectory, '.git'))) {
