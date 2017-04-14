@@ -1,10 +1,6 @@
 #! /usr/bin/env node
 
-import * as os from 'os';
 import * as program from 'commander';
-import * as fs from 'fs';
-import * as fse from 'fs-extra';
-import * as path from 'path';
 import * as mkdirp from 'mkdirp';
 import * as colors from 'colors'; colors;
 var pkginfo = require('pkginfo')(module);
@@ -21,7 +17,6 @@ var deployPath = '.';
 
 mkdirp.sync(helpers.cachePath);
 console.log(`Caching data to ${helpers.cachePath}.`.magenta);
-// TODO: Add note about having to login twice, but more than that may require subscription reset.
 
 // Global defines.
 

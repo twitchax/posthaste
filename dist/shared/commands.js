@@ -5,6 +5,7 @@ const fs = require("fs");
 const colors = require("colors");
 colors;
 const randomstring = require("randomstring");
+const ncp = require("copy-paste");
 const path = require("path");
 const readline = require("readline");
 const settings = require("../shared/settings");
@@ -118,7 +119,8 @@ async function deploy(deployPath = '.', deployName = undefined) {
         capitalization: 'lowercase'
     });
     var websiteName = `${projName}-${random}`;
-    console.log(`${helpers._tab}Creating site: http://${websiteName}.azurewebsites.net/ ... `.cyan);
+    var websiteUri = `http://${websiteName}.azurewebsites.net/`;
+    console.log(`${helpers._tab}Creating site: ${websiteUri} ... `.cyan);
     helpers.tab();
     var site = await helpers.createWebsite(websiteName);
     helpers.untab();
@@ -126,7 +128,8 @@ async function deploy(deployPath = '.', deployName = undefined) {
     helpers.tab();
     await helpers.deployToWebsite(websiteName, fullPath);
     helpers.untab();
-    console.log(`${helpers._tab}Navigate to http://${websiteName}.azurewebsites.net/ ! `.cyan);
+    ncp.copy(websiteUri);
+    console.log(`${helpers._tab}Navigate to ${websiteUri} ! `.cyan);
 }
 exports.deploy = deploy;
 // Other commands.

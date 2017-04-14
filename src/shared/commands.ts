@@ -1,19 +1,14 @@
-import * as request from 'request';
+
 import * as _ from 'lodash';
 import * as fs from 'fs';
-import * as async from 'async';
-import * as ProgressBar from 'progress';
-import * as mkdirp from 'mkdirp';
 import * as colors from 'colors'; colors;
 import * as randomstring from 'randomstring';
 import * as ncp from 'copy-paste';
 import * as path from 'path';
 import * as readline from 'readline';
-import * as promisify from 'es6-promisify';
 
 import * as settings from '../shared/settings';
 import * as helpers from '../shared/helpers';
-import {  } from '../shared/bll';
 
 // Globals.
 
@@ -147,8 +142,9 @@ export async function deploy(deployPath: string = '.', deployName: string = unde
     });
 
     var websiteName = `${projName}-${random}`;
+    var websiteUri = `http://${websiteName}.azurewebsites.net/`;
 
-    console.log(`${helpers._tab}Creating site: http://${websiteName}.azurewebsites.net/ ... `.cyan);
+    console.log(`${helpers._tab}Creating site: ${websiteUri} ... `.cyan);
     helpers.tab();
     var site = await helpers.createWebsite(websiteName);
     helpers.untab();
@@ -158,7 +154,8 @@ export async function deploy(deployPath: string = '.', deployName: string = unde
     await helpers.deployToWebsite(websiteName, fullPath);
     helpers.untab();
 
-    console.log(`${helpers._tab}Navigate to http://${websiteName}.azurewebsites.net/ ! `.cyan);
+    ncp.copy(websiteUri);
+    console.log(`${helpers._tab}Navigate to ${websiteUri} ! `.cyan);
 }
 
 // Other commands.

@@ -5,6 +5,8 @@ const path = require("path");
 const fs = require("fs");
 const fsExtra = require("fs-extra");
 const _ = require("lodash");
+const colors = require("colors");
+colors;
 const promisify = require("es6-promisify");
 const child_process_promise_1 = require("child-process-promise");
 const adal = require("adal-node");
@@ -304,7 +306,7 @@ async function resolveSubscriptionId() {
             console.log(`${exports._tab}${s.displayName}`);
         });
         untab();
-        console.log(`${exports._tab}Set subscription with \`subscription set\`.`.red);
+        console.log(`${exports._tab}Set subscription with \`subscription set <subscriptionName>\`.`.red);
         throw new Error('No default subscription selected.');
     }
     return subscriptionId;

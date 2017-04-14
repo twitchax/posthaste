@@ -14,7 +14,6 @@ var deployPath = '.';
 // Setup.
 mkdirp.sync(helpers.cachePath);
 console.log(`Caching data to ${helpers.cachePath}.`.magenta);
-// TODO: Add note about having to login twice, but more than that may require subscription reset.
 // Global defines.
 program
     .version(module.exports.version);

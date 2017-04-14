@@ -1,8 +1,3 @@
-import * as _ from 'lodash';
-import * as colors from 'colors'; colors /* peg this for compile */;
-import { Stats } from 'fast-stats';
-
-import * as helpers from './helpers';
 
 export interface SubscriptionPolicies {
     locationPlacementId: string;

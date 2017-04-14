@@ -1,13 +1,11 @@
 
 import * as os from 'os';
 import * as path from 'path';
-import * as mkdirp from 'mkdirp';
 import * as fs from 'fs';
 import * as fsExtra from 'fs-extra';
 import * as _ from 'lodash';
-import * as colors from 'colors';
+import * as colors from 'colors'; colors;
 import * as promisify from 'es6-promisify';
-import * as dir from 'node-dir';
 import { exec } from 'child-process-promise';
 
 import * as adal from 'adal-node';
@@ -15,7 +13,6 @@ import * as MsRest from 'ms-rest';
 import * as Azure from 'ms-rest-azure';
 import * as WebSiteManagementClient from 'azure-arm-website';
 import * as AzureRm from 'azure-arm-resource';
-import * as Kudu from 'kudu-api';
 
 import * as settings from './settings';
 import { Tenant, Subscription, ResourceGroup, Plan, Website, WebsiteCredentials } from './bll';
@@ -369,7 +366,7 @@ export async function resolveSubscriptionId() : Promise<string> {
             console.log(`${_tab}${s.displayName}`);
         });
         untab();
-        console.log(`${_tab}Set subscription with \`subscription set\`.`.red);
+        console.log(`${_tab}Set subscription with \`subscription set <subscriptionName>\`.`.red);
 
         throw new Error('No default subscription selected.');
     }
