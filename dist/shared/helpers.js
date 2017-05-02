@@ -226,6 +226,11 @@ exports.login = login;
 async function fixedKnownError(errCode) {
     var fixed = false;
     switch (errCode) {
+        case 'AuthenticationFailed':
+            console.log(`${exports._tab}Need to authenticate ... `.yellow);
+            await login(true);
+            fixed = true;
+            break;
         case 'ExpiredAuthenticationToken':
             console.log(`${exports._tab}Refreshing access token ... `.yellow);
             await refreshLogin();

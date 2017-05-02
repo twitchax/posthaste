@@ -274,6 +274,11 @@ async function fixedKnownError(errCode) {
     var fixed = false;
 
     switch (errCode) {
+        case 'AuthenticationFailed':
+            console.log(`${_tab}Need to authenticate ... `.yellow);
+            await login(true, /* ignoreCache */);
+            fixed = true;
+            break;
         case 'ExpiredAuthenticationToken':
             console.log(`${_tab}Refreshing access token ... `.yellow);
             await refreshLogin();
